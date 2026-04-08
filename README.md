@@ -1,33 +1,21 @@
-####  @ Imooc/AiTripPlan
+ATPlan-多agent智旅系统                                                    
 
-* doc：开发文档<br />
+概述：  基于 Spring Boot + Spring AI Alibaba + AgentScope 构建的智能旅行规划平台，采用多Agent协作架构，通过 A2A协议实现多智能体的自主任务分解与协同执行，支持 ReAct、Graph 状态机等多种工作流编排模式，集成百度地图 MCP Server 获取实时路线数据，为用户提供端到端的智能出行方案。
 
-* docker：docker部署 <br />
+技术栈：Java 17 +  Spring Boot + Spring AI + AgentScope + MCP + Spring Data JPA + MySQL +PostgreSQL + Docker ——前端  React + Vite
 
-* code: 项目源码 <br />
+项目要点：
 
-&emsp;|-Demo  教学Demo
+搭建三个 Agent 微服务，基于Nacos + A2A 跨服务通信，封装 RemoteAgentTool 将远程 Agent 代理为本地工具调用。
 
-&emsp;&emsp;&emsp;|-SpringAi 1.0: 基于 SpringAi Alibaba 1.0 版本 <br />
-&emsp;&emsp;&emsp;&emsp;|- Demo-MCP-SpringAi 1.0：SpringAi 1.0 实现MCP <br />
-&emsp;&emsp;&emsp;&emsp;|- Demo-SpringAi 1.0：ChatClinet对象 <br />
-&emsp;&emsp;&emsp;&emsp;|- Demo-WorkFlow-SpringAi 1.0：Graph Demo <br />
+设计并实现ManagerAgent 任务调度引擎，集成 PlanNotebook 实现复杂旅行需求的自主分解，支持人机协同确认机制。
 
-&emsp;&emsp;&emsp;|-SpringAi 1.1: 基于 SpringAi Alibaba 1.1 版本 <br />
-&emsp;&emsp;&emsp;&emsp;|- Demo-A2A-SpringAi 1.1：实现A2A协议 <br />
-&emsp;&emsp;&emsp;&emsp;|- Demo-MCP-SpringAi 1.1：基于注解实现MCP <br />
+基于Spring AI Alibaba封装 ReAct 和 StateGraph两种工作流编排模式，Graph模式支持并行节点执行与条件分支回退。
 
+对接 百度地图 MCP Server，通过 SSE 协议实现工具动态发现与热挂载，为路线规划 Agent 提供实时地理数据。
 
-&emsp;&emsp;&emsp;|-SpringAi 1.1.2: 基于 SpringAi Alibaba 1.1.2 版本 <br />
-&emsp;&emsp;&emsp;&emsp;|- Demo-Skills-SpringAi 1.1.2：Agent装载Skills <br />
+搭建 OpenAI 兼容适配层，使系统可作为标准 LLM 后端被第三方客户端（如 ChatGPT 前端）直接调用。
 
-&emsp;&emsp;&emsp;|-AgentScope_1.0.7: AgentScope Demo <br />
+构建 Agent 稳定性保障体系：Token 感知自动记忆压缩（token计算+LLM摘要）、循环检测、指数退避重试。
 
-&emsp;|-AiTripPlan 多Agent旅游规划 ( 3种方式实现 )
-
-&emsp;&emsp;&emsp;|- WorkFlow-Agent-SpringAi 1.1：以ReActAgent API 搭建旅游规划工作流 Demo <br />
-&emsp;&emsp;&emsp;|- WorkFlow-Graph-SpringAi 1.1：以Graph引擎 搭建旅游规划工作流 Demo <br />
-&emsp;&emsp;&emsp;|- AiTripPlan: AgentScope1.0.8+SpringBoot4.0+分布式Agent+MCP+Skill+A2A旅游规划 <br />
-
-
-&emsp;|-Jmanus_4.10.6: 完整的Agent自主规划+自主决策 (包含界面与后台) <br />
+采用 Docker Compose 编排多服务部署，实现一键启动完整分布式 Agent 集群。

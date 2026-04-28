@@ -20,7 +20,7 @@ import java.util.concurrent.TimeoutException;
 import java.util.function.Function;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 并行Agent调用服务（配置化版本）
  *      支持并行调用多个Agent，统一处理超时和容错
  *      支持熔断降级（Resilience4j）与重试

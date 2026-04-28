@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 旅行规划上下文
  *      用于在多个Agent之间传递数据
  * date: 2026

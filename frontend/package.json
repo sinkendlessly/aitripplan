@@ -1,7 +1,8 @@
 {
-  "name": "aitrip-plan-frontend",
+  "name": "atplan-frontend",
   "private": true,
   "version": "1.0.0",
+  "author": "Sinkendlessly",
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -15,7 +15,7 @@ import reactor.core.publisher.Flux;
 import java.util.List;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: ReActAgent 工具类（配置化版本）
  *      支持从application.yml加载配置
  * date: 2026
@@ -32,7 +32,7 @@ public class AgentUtils {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 创建ReAct Agent Builder
      *
      * @param name: Agent名称
@@ -47,7 +47,7 @@ public class AgentUtils {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 创建带Skills规范注入的ReAct Agent Builder（配置化版本）
      *
      * @param name: Agent名称
@@ -82,7 +82,7 @@ public class AgentUtils {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: ReAct Agent 流式响应
      *
      * @param agent: Agent实例

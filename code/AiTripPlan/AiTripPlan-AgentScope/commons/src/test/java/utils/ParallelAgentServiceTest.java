@@ -10,7 +10,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: ParallelAgentService单元测试
  * date: 2026
  */

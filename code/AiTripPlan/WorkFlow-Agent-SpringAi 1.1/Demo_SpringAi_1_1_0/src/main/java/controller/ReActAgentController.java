@@ -23,7 +23,7 @@ import tool.WeatherTool;
 import java.util.function.BiFunction;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 通过ReActAgent和大模型Api
  * date: 2025
  */
@@ -43,7 +43,7 @@ public class ReActAgentController {
 
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 简单的流式响应
      * @param :
      * @return java.lang.String
@@ -52,7 +52,7 @@ public class ReActAgentController {
     public void streamChat() throws GraphRunnerException {
 
         //用户输入
-        String message = "在咖啡馆里，想要杯星巴克";
+        String message = "帮我查一下北京今天的天气怎么样";
 
 
         //工具方法

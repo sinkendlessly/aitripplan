@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 旅行规划历史数据访问层
  * date: 2026
  */

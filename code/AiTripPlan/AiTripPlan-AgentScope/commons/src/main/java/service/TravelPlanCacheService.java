@@ -10,7 +10,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 旅行规划缓存服务
  *      缓存完整规划结果，支持按会话ID查询
  * date: 2026

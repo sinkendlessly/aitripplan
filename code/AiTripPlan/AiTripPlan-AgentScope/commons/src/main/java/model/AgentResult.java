@@ -4,7 +4,7 @@ import lombok.Builder;
 import lombok.Data;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Agent调用结果封装
  * date: 2026
  */

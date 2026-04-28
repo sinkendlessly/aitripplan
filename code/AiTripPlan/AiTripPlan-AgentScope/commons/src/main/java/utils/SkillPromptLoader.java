@@ -16,7 +16,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Skills 提示词加载器（从本地 skills 目录读取 SKILL.md 并注入到 Agent 描述）
  * date: 2026
  */

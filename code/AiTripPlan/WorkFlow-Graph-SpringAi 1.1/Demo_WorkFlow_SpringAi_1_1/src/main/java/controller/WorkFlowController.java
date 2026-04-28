@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 工作流控制器
  * date: 2025
  */
@@ -49,7 +49,7 @@ public class WorkFlowController {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 链式工作流的接口
      * @param :
      * @return void

@@ -6,7 +6,7 @@ import com.alibaba.cloud.ai.graph.action.NodeAction;
 import java.util.Map;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 费用统筹节点
  * date: 2026
  */

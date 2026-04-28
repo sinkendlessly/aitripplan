@@ -25,7 +25,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: TravelPlanHistoryRepository单元测试
  * date: 2026
  */

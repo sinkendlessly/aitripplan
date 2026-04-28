@@ -12,7 +12,7 @@ import java.time.Duration;
 import java.util.Optional;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 百度地图 MCP Client（配置化版本）
  *      从application.yml加载MCP配置
  * date: 2026
@@ -36,7 +36,7 @@ public class BaiduMapMCP {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 创建百度地图MCP客户端
      *
      * @return void
@@ -76,7 +76,7 @@ public class BaiduMapMCP {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 初始化百度地图MCP客户端
      *
      * @return io.agentscope.core.tool.mcp.McpClientWrapper

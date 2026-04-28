@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import utils.AgentUtils;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 费用统计Agent
  *      接收路线规划和行程规划的结果，进行费用统计和预算分析
  * date: 2026

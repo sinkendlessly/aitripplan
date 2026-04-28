@@ -11,7 +11,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Agent配置属性类
  *      从application.yml加载配置
  * date: 2026

@@ -3,7 +3,7 @@ package managerAgent.plan;
 import io.agentscope.core.plan.PlanNotebook;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 自定义 Agent自主分解旅游规划任务
  * date: 2026
  */
@@ -11,7 +11,7 @@ import io.agentscope.core.plan.PlanNotebook;
 public class TripPlan {
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 自定义 PlanNotebook 实例
      * @param :
      * @return io.agentscope.core.plan.PlanNotebook

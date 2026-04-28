@@ -15,7 +15,7 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 多Agent协同
  * date: 2026
  */
@@ -111,7 +111,7 @@ public class MultiAgentsController {
 
 
         // 启动工作流
-        Optional<OverAllState> res = sequentialAgent.invoke("帮我规划深圳到惠州的3天旅游行程");
+        Optional<OverAllState> res = sequentialAgent.invoke("帮我规划从北京到上海的3天旅行行程");
 
 
     }

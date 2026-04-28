@@ -5,7 +5,7 @@ import org.springframework.ai.chat.model.ToolContext;
 import java.util.function.BiFunction;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Agent工具定义
  * date: 2026
  */
@@ -14,6 +14,6 @@ import java.util.function.BiFunction;
 public class WeatherTool implements BiFunction<String, ToolContext, String> {
     @Override
     public String apply(String city, ToolContext toolContext) {
-        return "It's always sunny in " + city + "!";
+        return "The weather in " + city + " is partly cloudy, 22C.";
     }
 }

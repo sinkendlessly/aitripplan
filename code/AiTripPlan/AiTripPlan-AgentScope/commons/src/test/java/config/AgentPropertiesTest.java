@@ -9,7 +9,7 @@ import org.springframework.test.context.TestPropertySource;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: AgentProperties配置类测试
  * date: 2026
  */

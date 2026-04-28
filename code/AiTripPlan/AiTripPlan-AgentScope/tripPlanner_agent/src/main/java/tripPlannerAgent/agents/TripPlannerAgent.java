@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component;
 import utils.AgentUtils;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 行程规划Agent
  * date: 2026
  */

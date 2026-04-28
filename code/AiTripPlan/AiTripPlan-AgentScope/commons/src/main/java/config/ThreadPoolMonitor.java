@@ -13,7 +13,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 线程池监控端点
  *      提供线程池实时状态查看
  * date: 2026

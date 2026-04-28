@@ -3,7 +3,7 @@ server:
 spring:
   ai:
     dashscope:
-      api-key: 你的阿里 API KEY
+      api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
       chat:
         options:
           model: deepseek-r1  # 指定DeepSeek的模型名称

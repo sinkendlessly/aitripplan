@@ -4,7 +4,7 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 费用统计Agent启动类
  * date: 2026
  */

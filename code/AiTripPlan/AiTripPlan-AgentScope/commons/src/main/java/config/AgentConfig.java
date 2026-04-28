@@ -4,7 +4,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Configuration;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Agent配置类
  *      启用配置属性
  * date: 2026

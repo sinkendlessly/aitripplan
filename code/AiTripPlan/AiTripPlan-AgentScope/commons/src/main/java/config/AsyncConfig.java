@@ -14,7 +14,7 @@ import java.util.concurrent.RejectedExecutionHandler;
 import java.util.concurrent.ThreadPoolExecutor;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 异步线程池配置
  *      1. 自定义历史记录保存线程池
  *      2. 自定义缓存操作线程池

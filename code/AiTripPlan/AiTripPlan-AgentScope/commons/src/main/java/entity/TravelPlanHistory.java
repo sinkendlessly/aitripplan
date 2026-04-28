@@ -9,7 +9,7 @@ import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 旅行规划历史实体
  *      持久化存储用户的规划记录
  * date: 2026

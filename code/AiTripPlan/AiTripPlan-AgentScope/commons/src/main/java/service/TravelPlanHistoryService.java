@@ -21,7 +21,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 旅行规划历史服务
  *      处理规划结果的持久化和查询
  * date: 2026

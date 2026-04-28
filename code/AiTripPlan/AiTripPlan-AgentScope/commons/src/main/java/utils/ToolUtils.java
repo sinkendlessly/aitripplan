@@ -5,7 +5,7 @@ import io.agentscope.core.tool.mcp.McpClientWrapper;
 import lombok.extern.slf4j.Slf4j;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Agent Tool 工具类
  * date: 2026
  */
@@ -21,7 +21,7 @@ public class ToolUtils {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 获取工具包
      * @param tool:
      * @return io.agentscope.core.tool.Toolkit
@@ -35,7 +35,7 @@ public class ToolUtils {
     }
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 获取工具包
      * @param mcp:
      * @return io.agentscope.core.tool.Toolkit

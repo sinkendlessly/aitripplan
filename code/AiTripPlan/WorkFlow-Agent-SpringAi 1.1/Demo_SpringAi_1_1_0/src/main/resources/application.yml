@@ -8,7 +8,7 @@ spring:
     dashscope:
       # 阿里百炼大模型服务平台 API-Key申请文档
       # https://help.aliyun.com/zh/model-studio/get-api-key
-      api-key: 你的ApiKey
+      api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
       chat:
         options:
           model: deepseek-r1  # 指定DeepSeek的模型名称

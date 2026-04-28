@@ -7,7 +7,7 @@ import utils.AgentUtils;
 import utils.ParallelAgentService;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 远程Agent调用工具（重构版）
  *      支持并行调用、结果聚合、容错处理
  *      Agent 名称统一从 application.yml agent.names 读取

@@ -7,7 +7,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 行程规划节点
  * date: 2025
  */
@@ -15,7 +15,7 @@ import java.util.Map;
 public class TripPlannerNode implements NodeAction {
 
     /**
-     * author: Imooc
+     * author: Sinkendlessly
      * description: 节点对于全局状态的操作
      * @param state:
      * @return java.util.Map<java.lang.String,java.lang.Object>

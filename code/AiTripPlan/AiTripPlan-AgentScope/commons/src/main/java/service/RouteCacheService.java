@@ -9,7 +9,7 @@ import org.springframework.stereotype.Service;
 import java.util.concurrent.TimeUnit;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: 路线缓存服务
  *      缓存热门路线规划结果，减少AI调用成本
  * date: 2026

@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.*;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: TravelPlanContext单元测试
  * date: 2026
  */

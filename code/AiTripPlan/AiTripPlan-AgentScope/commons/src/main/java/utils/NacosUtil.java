@@ -8,7 +8,7 @@ import com.alibaba.nacos.api.exception.NacosException;
 import java.util.Properties;
 
 /**
- * author: Imooc
+ * author: Sinkendlessly
  * description: Nacos 客户端工具类，支持认证配置
  *      地址优先从 NACOS_SERVER_ADDR 环境变量读取，默认 localhost:8848
  *      认证信息优先从 NACOS_USERNAME / NACOS_PASSWORD 环境变量读取

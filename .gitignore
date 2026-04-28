@@ -1,8 +1,27 @@
+# Dependencies
 code/**/node_modules/
 code/**/package-lock.json
 code/**/*.lock
 
+# IDE
 code/**/.idea/
 code/**/out/
 code/**/target/
 code/**/META-INF/
+
+# Environment variables (contains secrets)
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Docker volumes (if mapped locally)
+data/
+volumes/

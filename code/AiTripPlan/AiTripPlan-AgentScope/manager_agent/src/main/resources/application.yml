@@ -1,2 +1,83 @@
+# ============================================
+# ATPlan 通用配置（被 dev/prod profile 覆盖）
+# 激活方式: --spring.profiles.active=dev 或 =prod
+# ============================================
 server:
   port: 8081
+
+spring:
+  application:
+    name: manager-agent
+
+  # Redis 缓存（开发/生产共用）
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    database: ${REDIS_DB:0}
+    timeout: 5000
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
+  # 异步线程池配置
+  task:
+    execution:
+      pool:
+        core-size: 4
+        max-size: 8
+        queue-capacity: 100
+
+# Agent 配置
+agent:
+  api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+  model-name: ${AGENT_MODEL_NAME:qwen3-max}
+  stream: true
+  timeout-seconds: ${AGENT_TIMEOUT:60}
+  names:
+    route: ${AGENT_ROUTE_NAME:RouteMakingAgent}
+    itinerary: ${AGENT_ITINERARY_NAME:TripPlannerAgent}
+    budget: ${AGENT_BUDGET_NAME:BudgetAgent}
+  mcp:
+    baidu-map:
+      url: ${BAIDU_MCP_URL:}
+      timeout: ${BAIDU_MCP_TIMEOUT:120}
+  skills:
+    dir: ${AGENT_SKILLS_DIR:./skills}
+
+# AgentScope A2A 配置
+agentscope:
+  a2a:
+    nacos:
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+    agent:
+      card:
+        name: ManagerAgent
+        description: "主管Agent，负责任务分解、子Agent调度与结果聚合（支持并行+缓存+持久化）"
+        version: "3.0.0"
+
+# Micrometer / Zipkin 追踪配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    sampling:
+      probability: ${TRACE_SAMPLE_RATE:1.0}
+  zipkin:
+    tracing:
+      endpoint: ${ZIPKIN_URL:http://localhost:9411/api/v2/spans}
+
+# 日志格式（日志级别由 profile 控制）
+logging:
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"

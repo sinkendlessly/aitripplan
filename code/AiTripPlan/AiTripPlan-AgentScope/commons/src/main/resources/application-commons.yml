@@ -1,0 +1,36 @@
+# 公共模块默认配置
+# 实际使用时应在各模块的 application.yml 中覆盖
+
+agent:
+  # DashScope API Key - 请通过环境变量或启动参数覆盖
+  api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+  
+  # 模型配置
+  model-name: ${AGENT_MODEL_NAME:qwen3-max}
+  stream: true
+  
+  # 超时配置（秒）
+  timeout-seconds: ${AGENT_TIMEOUT:60}
+  
+  # Agent名称映射
+  names:
+    route: ${AGENT_ROUTE_NAME:RouteMakingAgent}
+    itinerary: ${AGENT_ITINERARY_NAME:TripPlannerAgent}
+    budget: ${AGENT_BUDGET_NAME:BudgetAgent}
+    manager: ${AGENT_MANAGER_NAME:ManagerAgent}
+  
+  # MCP配置
+  mcp:
+    baidu-map:
+      url: ${BAIDU_MCP_URL:https://your-mcp-server-url}
+      timeout: ${BAIDU_MCP_TIMEOUT:120}
+  
+  # Skills配置
+  skills:
+    dir: ${AGENT_SKILLS_DIR:./skills}
+
+# 日志配置
+logging:
+  level:
+    utils.ParallelAgentService: INFO
+    managerAgent.tool.RemoteAgentTool: INFO

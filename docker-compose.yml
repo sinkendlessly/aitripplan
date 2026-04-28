@@ -1,0 +1,246 @@
+# ATPlan AI旅行规划系统 - Docker Compose配置
+# 一键启动: docker-compose up -d
+# 查看日志: docker-compose logs -f
+# 停止服务: docker-compose down
+
+services:
+  # ============================================
+  # 基础设施层
+  # ============================================
+
+  # Nacos 3.1 - 服务注册中心 (A2A)
+  nacos:
+    image: nacos/nacos-server:v3.1.0
+    container_name: atplan-nacos
+    ports:
+      - "8848:8848"  # HTTP API
+      - "9848:9848"  # gRPC
+    environment:
+      - MODE=standalone
+      - PREFER_HOST_MODE=hostname
+      - NACOS_AUTH_ENABLE=false
+      - JVM_XMS=512m
+      - JVM_XMX=512m
+    volumes:
+      - nacos-data:/home/nacos/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8848/nacos/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+  # Redis 7 - 缓存服务
+  redis:
+    image: redis:7-alpine
+    container_name: atplan-redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --appendonly yes
+      --maxmemory 256mb
+      --maxmemory-policy allkeys-lru
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+  # MySQL 8 - 数据持久化
+  mysql:
+    image: mysql:8.0
+    container_name: atplan-mysql
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - MYSQL_DATABASE=atplan
+      - MYSQL_USER=atplan
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-atplan123}
+      - TZ=Asia/Shanghai
+    volumes:
+      - mysql-data:/var/lib/mysql
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 60s
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+  # ============================================
+  # Agent服务层
+  # ============================================
+
+  # ManagerAgent - 主管Agent (入口, :8081)
+  manager-agent:
+    build:
+      context: ./code/AiTripPlan/AiTripPlan-AgentScope
+      dockerfile: manager_agent/Dockerfile
+    container_name: atplan-manager-agent
+    ports:
+      - "8081:8081"
+    environment:
+      # 激活生产环境 Profile（使用 MySQL 而非 H2）
+      - SPRING_PROFILES_ACTIVE=prod
+      # 数据库配置
+      - DB_URL=jdbc:mysql://mysql:3306/atplan?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+      - DB_DRIVER=com.mysql.cj.jdbc.Driver
+      - DB_USER=root
+      - DB_PASSWORD=${MYSQL_ROOT_PASSWORD:-root}
+      - JPA_DDL_AUTO=update
+      - JPA_DIALECT=org.hibernate.dialect.MySQL8Dialect
+      # Redis配置
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_PASSWORD=
+      # Nacos配置
+      - NACOS_SERVER_ADDR=nacos:8848
+      # API Key配置
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - BAIDU_MCP_URL=${BAIDU_MCP_URL:-}
+      # Agent配置
+      - AGENT_SKILLS_DIR=/app/skills
+    volumes:
+      - ./skills:/app/skills:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8081/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+  # RouteMakingAgent - 路线规划Agent (仅内部A2A通信)
+  route-making-agent:
+    build:
+      context: ./code/AiTripPlan/AiTripPlan-AgentScope
+      dockerfile: routeMaking_agent/Dockerfile
+    container_name: atplan-route-agent
+    # 不暴露端口到宿主机，仅通过Nacos内部通信
+    environment:
+      # Nacos配置
+      - NACOS_SERVER_ADDR=nacos:8848
+      # API Key配置
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      - BAIDU_MCP_URL=${BAIDU_MCP_URL:-}
+      # Agent配置
+      - AGENT_SKILLS_DIR=/app/skills
+    volumes:
+      - ./skills:/app/skills:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8082/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+  # TripPlannerAgent - 行程规划Agent (仅内部A2A通信)
+  trip-planner-agent:
+    build:
+      context: ./code/AiTripPlan/AiTripPlan-AgentScope
+      dockerfile: tripPlanner_agent/Dockerfile
+    container_name: atplan-trip-agent
+    # 不暴露端口到宿主机，仅通过Nacos内部通信
+    environment:
+      # Nacos配置
+      - NACOS_SERVER_ADDR=nacos:8848
+      # API Key配置
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      # Agent配置
+      - AGENT_SKILLS_DIR=/app/skills
+    volumes:
+      - ./skills:/app/skills:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8085/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+  # BudgetAgent - 预算Agent (仅内部A2A通信)
+  budget-agent:
+    build:
+      context: ./code/AiTripPlan/AiTripPlan-AgentScope
+      dockerfile: budget_agent/Dockerfile
+    container_name: atplan-budget-agent
+    # 不暴露端口到宿主机，仅通过Nacos内部通信
+    environment:
+      # Nacos配置
+      - NACOS_SERVER_ADDR=nacos:8848
+      # API Key配置
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY}
+      # Agent配置
+      - AGENT_SKILLS_DIR=/app/skills
+    volumes:
+      - ./skills:/app/skills:ro
+    depends_on:
+      nacos:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8083/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 120s
+    networks:
+      - atplan-network
+    restart: unless-stopped
+
+# ============================================
+# 数据卷
+# ============================================
+volumes:
+  nacos-data:
+    driver: local
+  redis-data:
+    driver: local
+  mysql-data:
+    driver: local
+
+# ============================================
+# 网络
+# ============================================
+networks:
+  atplan-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

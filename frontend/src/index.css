@@ -1,0 +1,93 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    @apply min-h-screen;
+  }
+
+  ::selection {
+    @apply bg-sand-300/40;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-white/80 backdrop-blur-sm rounded-2xl border border-sand-200/50 shadow-sm;
+  }
+
+  .card-hover {
+    @apply card transition-all duration-300 hover:shadow-md hover:border-sand-300/50;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 px-6 py-3 rounded-xl
+           bg-gradient-to-r from-sand-500 to-coral-400 text-white font-medium
+           shadow-sm hover:shadow-md hover:from-sand-600 hover:to-coral-500
+           active:from-sand-700 active:to-coral-600
+           transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 px-4 py-2 rounded-xl
+           text-sand-700 hover:bg-sand-100/80 active:bg-sand-200/50
+           transition-all duration-200;
+  }
+
+  .input-field {
+    @apply w-full px-4 py-3 rounded-xl border border-sand-200 bg-white/70
+           text-gray-700 placeholder:text-sand-300
+           focus:outline-none focus:ring-2 focus:ring-sand-400/30 focus:border-sand-400
+           transition-all duration-200;
+  }
+
+  .label {
+    @apply block text-sm font-medium text-gray-600 mb-1.5;
+  }
+
+  .tag {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-medium;
+  }
+
+  .tag-sand {
+    @apply tag bg-sand-100 text-sand-700;
+  }
+
+  .tag-sage {
+    @apply tag bg-sage-100 text-sage-700;
+  }
+
+  .tag-coral {
+    @apply tag bg-coral-100 text-coral-700;
+  }
+}
+
+/* Respect user motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-sand-300/50 rounded-full hover:bg-sand-400/50 transition-colors;
+}

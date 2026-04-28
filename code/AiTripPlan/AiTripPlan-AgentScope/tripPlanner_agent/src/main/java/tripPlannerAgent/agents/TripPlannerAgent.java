@@ -1,11 +1,7 @@
 package tripPlannerAgent.agents;
 
 import io.agentscope.core.ReActAgent;
-import io.agentscope.core.a2a.server.AgentScopeA2aServer;
-import io.agentscope.core.a2a.server.card.ConfigurableAgentCard;
-import io.agentscope.core.a2a.server.transport.DeploymentProperties;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
 import org.springframework.stereotype.Component;
 import utils.AgentUtils;
 
@@ -39,7 +35,9 @@ public class TripPlannerAgent {
         //行程规划Agent Builder
         ReActAgent.Builder builder = AgentUtils.getReActAgentBuilder(
                 "TripPlannerAgent",
-                "擅长处理景点行程规划"
+                "擅长处理景点行程规划",
+                "itinerary-planning",
+                "budget-optimization"
         );
 
         return builder.build();

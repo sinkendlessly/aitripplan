@@ -15,6 +15,8 @@
         <module>routeMaking_agent</module>
         <!--   行程规划Agent     -->
         <module>tripPlanner_agent</module>
+        <!--   费用统计Agent     -->
+        <module>budget_agent</module>
         <!--   公共模块    -->
         <module>commons</module>
     </modules>

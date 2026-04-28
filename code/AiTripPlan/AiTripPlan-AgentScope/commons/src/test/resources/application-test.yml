@@ -1,0 +1,25 @@
+# 测试环境配置
+
+agent:
+  api-key: test-api-key-for-unit-tests
+  model-name: qwen-turbo
+  stream: false
+  timeout-seconds: 10
+
+  names:
+    route: TestRouteAgent
+    itinerary: TestItineraryAgent
+    budget: TestBudgetAgent
+
+  mcp:
+    baidu-map:
+      url: http://localhost:9999/test-mcp
+      timeout: 30
+
+  skills:
+    dir: ./test-skills
+
+logging:
+  level:
+    root: WARN
+    config.AgentProperties: DEBUG

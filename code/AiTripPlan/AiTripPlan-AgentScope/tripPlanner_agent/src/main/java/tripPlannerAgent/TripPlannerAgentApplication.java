@@ -9,7 +9,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * date: 2026
  */
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+        "tripPlannerAgent",
+        "utils",
+        "config"
+})
 public class TripPlannerAgentApplication {
     public static void main(String[] args) {
 

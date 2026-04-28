@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATPlan - AI 旅行规划</title>
+<script src="https://unpkg.com/vue@3/dist/vue.global.prod.js"></script>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script>
+tailwind.config = {
+  darkMode: 'class',
+  theme: {
+    extend: {
+      fontFamily: { jakarta: ['"Plus Jakarta Sans"', 'system-ui', '"Noto Sans SC"', 'sans-serif'] },
+      colors: {
+        midnight: { 50:'#e8eaf0', 100:'#c5c9d8', 200:'#9ea5bd', 300:'#7781a2', 400:'#59658d', 500:'#3b4978', 600:'#353f6b', 700:'#2b335b', 800:'#22284c', 900:'#141832', 950:'#0a0e1a' },
+        ember: { 400:'#fb923c', 500:'#f97316', 600:'#ea580c' },
+        coral: { 400:'#fb7185', 500:'#f43f5e' },
+        sea: { 400:'#22d3ee', 500:'#06b6d4', 600:'#0891b2' },
+        jade: { 400:'#34d399', 500:'#10b981', 600:'#059669' },
+        gilt: { 400:'#fbbf24', 500:'#f59e0b', 600:'#d97706' }
+      }
+    }
+  }
+}
+</script>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { font-family: 'Plus Jakarta Sans', 'Noto Sans SC', system-ui, sans-serif; }
+  ::-webkit-scrollbar { width:6px; }
+  ::-webkit-scrollbar-track { background:transparent; }
+  ::-webkit-scrollbar-thumb { background:rgba(255,255,255,0.08); border-radius:3px; }
+  ::-webkit-scrollbar-thumb:hover { background:rgba(255,255,255,0.15); }
+
+  .bg-mesh {
+    background:
+      radial-gradient(ellipse at 15% 80%, rgba(6,182,212,0.07) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 20%, rgba(249,115,22,0.06) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.04) 0%, transparent 60%);
+  }
+
+  .topo-lines {
+    background-image: url("data:image/svg+xml,%3Csvg width='400' height='400' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 200Q100 180 200 200T400 200' fill='none' stroke='rgba(255,255,255,0.02)' stroke-width='1'/%3E%3Cpath d='M0 160Q120 130 200 160T400 160' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='1'/%3E%3Cpath d='M0 240Q80 270 200 240T400 240' fill='none' stroke='rgba(255,255,255,0.015)' stroke-width='1'/%3E%3Cpath d='M0 120Q140 90 200 120T400 120' fill='none' stroke='rgba(255,255,255,0.01)' stroke-width='1'/%3E%3Cpath d='M0 280Q90 310 200 280T400 280' fill='none' stroke='rgba(255,255,255,0.01)' stroke-width='1'/%3E%3C/svg%3E");
+    background-size: 400px 400px;
+  }
+
+  .glass { background:rgba(20,24,50,0.6); backdrop-filter:blur(20px); -webkit-backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,0.06); }
+  .glass-light { background:rgba(255,255,255,0.03); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,0.05); }
+
+  @keyframes pulse-glow { 0%,100%{ box-shadow:0 0 4px currentColor, 0 0 8px currentColor; } 50%{ box-shadow:0 0 8px currentColor, 0 0 20px currentColor; } }
+  @keyframes orbit { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+  @keyframes fade-up { from{opacity:0;transform:translateY(12px)} to{opacity:1;transform:translateY(0)} }
+  @keyframes fade-in { from{opacity:0} to{opacity:1} }
+  @keyframes typewriter-cursor { 0%,100%{opacity:1} 50%{opacity:0} }
+  @keyframes shimmer { 0%{background-position:-200% 0} 100%{background-position:200% 0} }
+  @keyframes slide-in-left { from{opacity:0;transform:translateX(-20px)} to{opacity:1;transform:translateX(0)} }
+
+  .animate-fade-up { animation: fade-up 0.4s ease-out both; }
+  .animate-fade-in { animation: fade-in 0.3s ease-out both; }
+  .animate-slide-in { animation: slide-in-left 0.3s ease-out both; }
+
+  .status-running { animation: pulse-glow 1.8s ease-in-out infinite; }
+
+  .orbit-ring {
+    position:absolute; inset:-3px; border:1px dashed currentColor; border-radius:50%; opacity:0.3;
+    animation: orbit 8s linear infinite;
+  }
+
+  .typing-cursor::after {
+    content:''; display:inline-block; width:2px; height:1em; background:currentColor; margin-left:2px; vertical-align:text-bottom;
+    animation: typewriter-cursor 0.8s step-end infinite;
+  }
+
+  .skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.03) 25%, rgba(255,255,255,0.06) 50%, rgba(255,255,255,0.03) 75%);
+    background-size: 200% 100%; animation: shimmer 1.5s infinite;
+  }
+
+  .msg-content h1,.msg-content h2,.msg-content h3,.msg-content h4 { font-weight:700; margin:0.8em 0 0.4em; }
+  .msg-content h1 { font-size:1.3em; }
+  .msg-content h2 { font-size:1.15em; }
+  .msg-content h3 { font-size:1.05em; }
+  .msg-content p { margin:0.4em 0; line-height:1.75; }
+  .msg-content ul,.msg-content ol { margin:0.4em 0 0.4em 1.5em; }
+  .msg-content li { margin:0.2em 0; line-height:1.6; }
+  .msg-content strong { color:#fbbf24; font-weight:600; }
+  .msg-content code { background:rgba(255,255,255,0.08); padding:0.15em 0.4em; border-radius:4px; font-size:0.9em; }
+  .msg-content pre { background:rgba(0,0,0,0.3); padding:1em; border-radius:8px; overflow-x:auto; margin:0.6em 0; }
+  .msg-content pre code { background:none; padding:0; }
+  .msg-content table { border-collapse:collapse; width:100%; margin:0.6em 0; }
+  .msg-content th,.msg-content td { border:1px solid rgba(255,255,255,0.1); padding:0.5em 0.8em; text-align:left; }
+  .msg-content th { background:rgba(255,255,255,0.05); font-weight:600; }
+  .msg-content hr { border:none; border-top:1px solid rgba(255,255,255,0.08); margin:1em 0; }
+
+  .input-glow:focus-within { box-shadow: 0 0 0 1px rgba(6,182,212,0.3), 0 0 20px rgba(6,182,212,0.08); }
+
+  .sidebar-enter { animation: slide-in-left 0.25s ease-out; }
+
+  /* Light theme overrides */
+  .light .glass { background:rgba(255,255,255,0.75); border-color:rgba(0,0,0,0.06); }
+  .light .glass-light { background:rgba(0,0,0,0.03); border-color:rgba(0,0,0,0.06); }
+  .light .bg-mesh {
+    background:
+      radial-gradient(ellipse at 15% 80%, rgba(6,182,212,0.05) 0%, transparent 50%),
+      radial-gradient(ellipse at 85% 20%, rgba(249,115,22,0.04) 0%, transparent 50%),
+      radial-gradient(ellipse at 50% 50%, rgba(139,92,246,0.03) 0%, transparent 60%);
+  }
+  .light .msg-content strong { color:#d97706; }
+  .light .msg-content code { background:rgba(0,0,0,0.06); }
+  .light .msg-content pre { background:rgba(0,0,0,0.04); }
+  .light .msg-content th { background:rgba(0,0,0,0.04); }
+  .light .msg-content th,.light .msg-content td { border-color:rgba(0,0,0,0.1); }
+  .light ::-webkit-scrollbar-thumb { background:rgba(0,0,0,0.1); }
+  .light ::-webkit-scrollbar-thumb:hover { background:rgba(0,0,0,0.2); }
+</style>
+</head>
+<body class="dark">
+
+<div id="app">
+  <div :class="isDark ? 'dark' : 'light'" class="h-screen flex overflow-hidden topo-lines bg-mesh font-jakarta transition-colors duration-500"
+       :style="isDark ? 'background-color:#0a0e1a; color:white' : 'background-color:#f8f9fc; color:#1a1a2e'"
+  >
+
+    <!-- Sidebar -->
+    <transition name="sidebar">
+      <aside v-if="sidebarOpen" class="w-72 flex-shrink-0 flex flex-col glass border-r border-white/5 sidebar-enter">
+        <!-- Logo area -->
+        <div class="p-5 border-b border-white/5">
+          <div class="flex items-center gap-3">
+            <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-sea-500 to-ember-500 flex items-center justify-center text-sm font-extrabold shadow-lg shadow-sea-500/20">AT</div>
+            <div>
+              <h1 class="text-base font-bold tracking-tight">ATPlan</h1>
+              <p class="text-[10px] text-white/30 tracking-widest uppercase">AI Travel Planner</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- New chat button -->
+        <div class="p-3">
+          <button @click="newChat" class="w-full flex items-center gap-2 px-4 py-2.5 rounded-xl border border-white/8 hover:bg-white/5 transition-all duration-200 text-sm text-white/70 hover:text-white group">
+            <svg class="w-4 h-4 text-sea-400 group-hover:rotate-90 transition-transform duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/></svg>
+            <span>新建规划</span>
+          </button>
+        </div>
+
+        <!-- History -->
+        <div class="flex-1 overflow-y-auto px-3 pb-3">
+          <p class="px-2 py-2 text-[10px] uppercase tracking-widest text-white/20 font-semibold">历史记录</p>
+          <div v-if="history.length===0" class="px-2 py-6 text-center text-white/20 text-xs">暂无记录</div>
+          <div v-for="(item,i) in history" :key="item.id || i"
+               @click="loadHistory(item)"
+               class="group px-3 py-2.5 rounded-lg hover:bg-white/5 cursor-pointer transition-all duration-150 mb-0.5"
+               :class="{'bg-white/5': currentPlanId === item.planId}">
+            <div class="flex items-center gap-2">
+              <div class="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                   :class="item.status==='SUCCESS'?'bg-jade-400':item.status==='FAILED'?'bg-coral-400':'bg-gilt-400'"></div>
+              <p class="text-xs text-white/60 group-hover:text-white/80 truncate transition-colors">{{ item.userRequest || '未知请求' }}</p>
+            </div>
+            <p class="text-[10px] text-white/20 mt-1 pl-3.5">{{ formatTime(item.createdAt || item.createTime) }}</p>
+          </div>
+        </div>
+
+        <!-- Stats footer -->
+        <div class="p-4 border-t border-white/5">
+          <div class="flex justify-between text-[10px] text-white/25">
+            <span>总规划 {{ stats.totalPlans || 0 }}</span>
+            <span>成功率 {{ (stats.successRate || 0).toFixed(0) }}%</span>
+          </div>
+        </div>
+      </aside>
+    </transition>
+
+    <!-- Main -->
+    <main class="flex-1 flex flex-col min-w-0">
+
+      <!-- Top bar -->
+      <header class="flex items-center justify-between px-5 py-3 border-b border-white/5 glass flex-shrink-0">
+        <div class="flex items-center gap-3">
+          <button @click="sidebarOpen=!sidebarOpen" class="p-2 rounded-lg hover:bg-white/5 transition-colors">
+            <svg class="w-4 h-4 text-white/40" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
+          <span v-if="!sidebarOpen" class="text-sm font-bold text-white/70">ATPlan</span>
+        </div>
+
+        <!-- Agent status indicators -->
+        <div class="flex items-center gap-5">
+          <div v-for="a in agents" :key="a.key" class="flex items-center gap-2">
+            <div class="relative">
+              <div class="w-2.5 h-2.5 rounded-full transition-colors duration-500"
+                   :class="statusColor(a.status)"
+                   :style="a.status==='running'?'animation:pulse-glow 1.8s ease-in-out infinite':''">
+              </div>
+              <div v-if="a.status==='running'" class="orbit-ring" :style="`color:${a.color}`"></div>
+            </div>
+            <span class="text-[11px] hidden sm:inline" :class="a.status==='idle'?'text-white/25':a.status==='running'?'text-sea-300':'text-jade-300'">{{ a.label }}</span>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2">
+          <span v-if="isProcessing" class="text-[10px] text-sea-400/80 animate-pulse">规划中...</span>
+          <button @click="toggleTheme" class="p-2 rounded-lg hover:bg-white/5 transition-colors" title="切换主题">
+            <svg v-if="isDark" class="w-4 h-4 text-gilt-400/60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            <svg v-else class="w-4 h-4 text-midnight-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z"/></svg>
+          </button>
+        </div>
+      </header>
+
+      <!-- Messages area -->
+      <div ref="messagesContainer" class="flex-1 overflow-y-auto">
+        <div class="max-w-3xl mx-auto px-4 py-6">
+
+          <!-- Welcome screen -->
+          <div v-if="messages.length===0 && !isProcessing" class="animate-fade-up">
+            <div class="text-center pt-16 pb-10">
+              <div class="w-16 h-16 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-sea-500/20 to-ember-500/20 border border-white/5 flex items-center justify-center">
+                <svg class="w-8 h-8 text-sea-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l5.447 2.724A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"/></svg>
+              </div>
+              <h2 class="text-2xl font-bold mb-2 bg-gradient-to-r from-white to-white/60 bg-clip-text text-transparent">开始规划您的旅程</h2>
+              <p class="text-white/30 text-sm max-w-md mx-auto">三个 AI Agent 并行协作，为您打造包含路线、行程和预算的完整旅行方案</p>
+            </div>
+
+            <!-- Quick prompts -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 max-w-lg mx-auto">
+              <button v-for="q in quickPrompts" :key="q.text" @click="sendMessage(q.text)"
+                      class="group text-left p-4 rounded-xl border border-white/5 hover:border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all duration-300">
+                <div class="flex items-start gap-3">
+                  <span class="text-lg flex-shrink-0">{{ q.icon }}</span>
+                  <div>
+                    <p class="text-xs text-white/60 group-hover:text-white/80 transition-colors leading-relaxed">{{ q.text }}</p>
+                    <p class="text-[10px] text-white/20 mt-1">{{ q.tag }}</p>
+                  </div>
+                </div>
+              </button>
+            </div>
+          </div>
+
+          <!-- Messages -->
+          <div v-for="(msg,i) in messages" :key="i" class="mb-5 animate-fade-up" :style="`animation-delay:${Math.min(i*0.05,0.3)}s`">
+
+            <!-- User message -->
+            <div v-if="msg.role==='user'" class="flex justify-end">
+              <div class="max-w-[80%] px-4 py-3 rounded-2xl rounded-br-md bg-gradient-to-br from-sea-600/30 to-sea-700/20 border border-sea-500/10">
+                <p class="text-sm leading-relaxed text-white/90">{{ msg.content }}</p>
+              </div>
+            </div>
+
+            <!-- Thinking indicator -->
+            <div v-else-if="msg.role==='thinking'" class="flex gap-3">
+              <div class="w-7 h-7 rounded-lg flex-shrink-0 mt-1 bg-midnight-800 flex items-center justify-center">
+                <div class="w-3 h-3 rounded-full border-2 border-sea-400/40 border-t-sea-400" style="animation:orbit 0.8s linear infinite"></div>
+              </div>
+              <div class="flex-1">
+                <p class="text-xs text-white/30 pt-2">{{ msg.content }}</p>
+              </div>
+            </div>
+
+            <!-- Agent message -->
+            <div v-else class="flex gap-3">
+              <div class="w-7 h-7 rounded-lg flex-shrink-0 mt-1 flex items-center justify-center text-[10px] font-bold"
+                   :class="agentAvatarClass(msg.agent)">
+                {{ agentAvatar(msg.agent) }}
+              </div>
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-1.5">
+                  <span class="text-[11px] font-semibold" :class="agentLabelClass(msg.agent)">{{ agentDisplayName(msg.agent) }}</span>
+                  <span v-if="msg.status==='streaming'" class="text-[9px] text-sea-400/60 animate-pulse">输出中</span>
+                  <span v-if="msg.status==='done'" class="text-[9px] text-jade-400/40">完成</span>
+                </div>
+                <div class="rounded-2xl rounded-tl-md px-4 py-3 glass-light">
+                  <div class="msg-content text-sm text-white/75 leading-relaxed" v-html="renderMarkdown(msg.content)"></div>
+                  <span v-if="msg.status==='streaming'" class="typing-cursor text-sea-400"></span>
+                </div>
+                <div v-if="msg.executionTime" class="mt-1 text-[10px] text-white/15">
+                  {{ (msg.executionTime/1000).toFixed(1) }}s
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Completion summary -->
+          <div v-if="completionInfo" class="mb-5 animate-fade-up">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-jade-500/5 border border-jade-500/10">
+              <svg class="w-4 h-4 text-jade-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>
+              <p class="text-xs text-jade-300/70">规划完成，总耗时 {{ (completionInfo.totalTime/1000).toFixed(1) }} 秒</p>
+            </div>
+          </div>
+
+          <!-- Error -->
+          <div v-if="errorInfo" class="mb-5 animate-fade-up">
+            <div class="flex items-center gap-3 px-4 py-3 rounded-xl bg-coral-500/5 border border-coral-500/10">
+              <svg class="w-4 h-4 text-coral-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+              <p class="text-xs text-coral-300/70">{{ errorInfo }}</p>
+              <button @click="retryLastPrompt" class="ml-auto text-[10px] px-3 py-1 rounded-lg bg-coral-500/10 text-coral-300 hover:bg-coral-500/20 transition-colors">重试</button>
+            </div>
+          </div>
+
+          <div ref="scrollAnchor"></div>
+        </div>
+      </div>
+
+      <!-- Input area -->
+      <div class="flex-shrink-0 border-t border-white/5 glass">
+        <div class="max-w-3xl mx-auto px-4 py-4">
+          <div class="flex gap-3 items-end input-glow rounded-2xl bg-white/[0.03] border border-white/8 px-4 py-3 transition-all duration-300">
+            <textarea
+              ref="inputEl"
+              v-model="inputText"
+              @keydown.enter.exact.prevent="sendMessage()"
+              placeholder="描述您的旅行计划，例如：帮我制定深圳到惠州3日游自驾游计划..."
+              rows="1"
+              :disabled="isProcessing"
+              class="flex-1 bg-transparent text-sm text-white/80 placeholder:text-white/20 resize-none outline-none leading-relaxed max-h-32 disabled:opacity-40"
+              @input="autoResize"
+            ></textarea>
+            <button
+              @click="sendMessage()"
+              :disabled="!inputText.trim() || isProcessing"
+              class="flex-shrink-0 w-9 h-9 rounded-xl flex items-center justify-center transition-all duration-300"
+              :class="inputText.trim() && !isProcessing
+                ? 'bg-gradient-to-br from-sea-500 to-sea-600 text-white shadow-lg shadow-sea-500/20 hover:shadow-sea-500/40 hover:scale-105'
+                : 'bg-white/5 text-white/15'">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+          <p class="text-center text-[10px] text-white/15 mt-2">三个 AI Agent 并行协作 · 路线规划 · 行程安排 · 费用分析</p>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<script>
+const { createApp, ref, reactive, nextTick, onMounted, watch } = Vue;
+
+createApp({
+  setup() {
+    const sidebarOpen = ref(true);
+    const isDark = ref(true);
+    const inputText = ref('');
+    const messages = ref([]);
+    const history = ref([]);
+    const stats = reactive({ totalPlans:0, successRate:0, averageCost:0 });
+    const isProcessing = ref(false);
+    const currentPlanId = ref(null);
+    const completionInfo = ref(null);
+    const errorInfo = ref(null);
+    const lastPrompt = ref('');
+    const messagesContainer = ref(null);
+    const scrollAnchor = ref(null);
+    const inputEl = ref(null);
+
+    const agents = reactive([
+      { key:'route', label:'路线规划', status:'idle', color:'#06b6d4' },
+      { key:'itinerary', label:'行程规划', status:'idle', color:'#10b981' },
+      { key:'budget', label:'费用统计', status:'idle', color:'#f59e0b' }
+    ]);
+
+    const quickPrompts = [
+      { icon:'🚗', text:'帮我制定深圳到惠州3日游自驾游计划，包含吃住行', tag:'自驾游 · 3天' },
+      { icon:'✈️', text:'计划北京5日文化之旅，预算8000元，两人出行', tag:'飞机 · 5天' },
+      { icon:'🏔️', text:'云南大理丽江7天自由行，节奏轻松适合情侣', tag:'自由行 · 7天' },
+      { icon:'🎒', text:'上海出发到杭州周末2日游，预算2000元以内', tag:'周末游 · 2天' }
+    ];
+
+    let eventSource = null;
+
+    const agentKeyMap = {
+      'RouteMakingAgent':'route',
+      'TripPlannerAgent':'itinerary',
+      'BudgetAgent':'budget'
+    };
+
+    function resetAgents() {
+      agents.forEach(a => a.status = 'idle');
+    }
+
+    function statusColor(status) {
+      return {
+        idle: 'bg-white/15',
+        running: 'bg-sea-400',
+        done: 'bg-jade-400',
+        error: 'bg-coral-400'
+      }[status] || 'bg-white/15';
+    }
+
+    function agentAvatarClass(agent) {
+      if (agent === 'RouteMakingAgent') return 'bg-sea-500/15 text-sea-400';
+      if (agent === 'TripPlannerAgent') return 'bg-jade-500/15 text-jade-400';
+      if (agent === 'BudgetAgent') return 'bg-gilt-500/15 text-gilt-400';
+      return 'bg-white/5 text-white/40';
+    }
+
+    function agentAvatar(agent) {
+      if (agent === 'RouteMakingAgent') return '路';
+      if (agent === 'TripPlannerAgent') return '行';
+      if (agent === 'BudgetAgent') return '费';
+      return 'AI';
+    }
+
+    function agentLabelClass(agent) {
+      if (agent === 'RouteMakingAgent') return 'text-sea-400/70';
+      if (agent === 'TripPlannerAgent') return 'text-jade-400/70';
+      if (agent === 'BudgetAgent') return 'text-gilt-400/70';
+      return 'text-white/40';
+    }
+
+    function agentDisplayName(agent) {
+      if (agent === 'RouteMakingAgent') return '路线规划';
+      if (agent === 'TripPlannerAgent') return '行程规划';
+      if (agent === 'BudgetAgent') return '费用统计';
+      return 'AI 助手';
+    }
+
+    function renderMarkdown(text) {
+      if (!text) return '';
+      try {
+        return marked.parse(text, { breaks: true, gfm: true });
+      } catch { return text; }
+    }
+
+    function formatTime(t) {
+      if (!t) return '';
+      try {
+        const d = new Date(t);
+        const now = new Date();
+        const diff = now - d;
+        if (diff < 60000) return '刚刚';
+        if (diff < 3600000) return Math.floor(diff/60000) + '分钟前';
+        if (diff < 86400000) return Math.floor(diff/3600000) + '小时前';
+        return d.toLocaleDateString('zh-CN', { month:'short', day:'numeric' });
+      } catch { return ''; }
+    }
+
+    function autoResize(e) {
+      const el = e.target;
+      el.style.height = 'auto';
+      el.style.height = Math.min(el.scrollHeight, 128) + 'px';
+    }
+
+    function scrollToBottom() {
+      nextTick(() => {
+        scrollAnchor.value?.scrollIntoView({ behavior:'smooth', block:'end' });
+      });
+    }
+
+    async function sendMessage(text) {
+      const prompt = (text || inputText.value).trim();
+      if (!prompt || isProcessing.value) return;
+
+      inputText.value = '';
+      if (inputEl.value) { inputEl.value.style.height = 'auto'; }
+      lastPrompt.value = prompt;
+      completionInfo.value = null;
+      errorInfo.value = null;
+      resetAgents();
+
+      messages.value.push({ role:'user', content: prompt });
+      scrollToBottom();
+
+      isProcessing.value = true;
+
+      try {
+        const res = await fetch('/api/v1/plan', {
+          method:'POST',
+          headers:{ 'Content-Type':'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+
+        if (!res.ok) throw new Error('请求失败: ' + res.status);
+        const data = await res.json();
+        currentPlanId.value = data.planId;
+
+        messages.value.push({ role:'thinking', content:'正在分析您的旅行需求，调度 Agent 中...' });
+        scrollToBottom();
+
+        connectSSE(data.planId);
+      } catch (err) {
+        isProcessing.value = false;
+        errorInfo.value = err.message || '请求失败，请检查后端服务是否启动';
+        scrollToBottom();
+      }
+    }
+
+    function connectSSE(planId) {
+      if (eventSource) { eventSource.close(); }
+
+      const agentMessages = {};
+
+      eventSource = new EventSource('/api/v1/plan/' + planId + '/stream');
+
+      eventSource.addEventListener('thinking', (e) => {
+        const data = JSON.parse(e.data);
+        const thinkIdx = messages.value.findIndex(m => m.role === 'thinking');
+        if (thinkIdx >= 0) messages.value[thinkIdx].content = data.content;
+        scrollToBottom();
+      });
+
+      eventSource.addEventListener('agent_start', (e) => {
+        const data = JSON.parse(e.data);
+        const key = agentKeyMap[data.agent];
+        if (key) {
+          const a = agents.find(x => x.key === key);
+          if (a) a.status = 'running';
+        }
+        // Remove thinking message on first agent start
+        const thinkIdx = messages.value.findIndex(m => m.role === 'thinking');
+        if (thinkIdx >= 0) messages.value.splice(thinkIdx, 1);
+      });
+
+      function handleProgress(e, agentName) {
+        const data = JSON.parse(e.data);
+        if (!agentMessages[agentName]) {
+          agentMessages[agentName] = { role:'assistant', agent: agentName, content:'', status:'streaming' };
+          messages.value.push(agentMessages[agentName]);
+        }
+        agentMessages[agentName].content += (data.content || '');
+        scrollToBottom();
+      }
+
+      eventSource.addEventListener('route_progress', (e) => handleProgress(e, 'RouteMakingAgent'));
+      eventSource.addEventListener('itinerary_progress', (e) => handleProgress(e, 'TripPlannerAgent'));
+      eventSource.addEventListener('budget_progress', (e) => handleProgress(e, 'BudgetAgent'));
+
+      eventSource.addEventListener('complete', (e) => {
+        const data = JSON.parse(e.data);
+        isProcessing.value = false;
+        completionInfo.value = data;
+
+        // Finalize agent statuses
+        agents.forEach(a => { if (a.status === 'running') a.status = 'done'; });
+
+        // Mark messages as done
+        Object.values(agentMessages).forEach(m => m.status = 'done');
+
+        eventSource.close();
+        eventSource = null;
+        loadHistory();
+        scrollToBottom();
+      });
+
+      eventSource.addEventListener('error', (e) => {
+        try {
+          const data = JSON.parse(e.data);
+          errorInfo.value = data.content || '规划出错';
+        } catch {
+          errorInfo.value = '连接中断';
+        }
+        isProcessing.value = false;
+        agents.forEach(a => { if (a.status === 'running') a.status = 'error'; });
+        Object.values(agentMessages).forEach(m => m.status = 'done');
+        if (eventSource) { eventSource.close(); eventSource = null; }
+        scrollToBottom();
+      });
+
+      eventSource.onerror = () => {
+        if (isProcessing.value) {
+          // SSE connection dropped - might be complete
+          setTimeout(() => {
+            if (isProcessing.value) {
+              isProcessing.value = false;
+              agents.forEach(a => { if (a.status === 'running') a.status = 'done'; });
+              Object.values(agentMessages).forEach(m => m.status = 'done');
+            }
+          }, 2000);
+        }
+        if (eventSource) { eventSource.close(); eventSource = null; }
+      };
+    }
+
+    function retryLastPrompt() {
+      errorInfo.value = null;
+      if (lastPrompt.value) sendMessage(lastPrompt.value);
+    }
+
+    function toggleTheme() {
+      isDark.value = !isDark.value;
+      document.body.className = isDark.value ? 'dark' : 'light';
+    }
+
+    function newChat() {
+      if (eventSource) { eventSource.close(); eventSource = null; }
+      messages.value = [];
+      isProcessing.value = false;
+      completionInfo.value = null;
+      errorInfo.value = null;
+      currentPlanId.value = null;
+      resetAgents();
+      nextTick(() => inputEl.value?.focus());
+    }
+
+    async function loadHistory(item) {
+      if (item) {
+        // Load specific plan
+        currentPlanId.value = item.planId;
+        messages.value = [{ role:'user', content: item.userRequest }];
+        if (item.routeResult) messages.value.push({ role:'assistant', agent:'RouteMakingAgent', content:item.routeResult, status:'done' });
+        if (item.itineraryResult) messages.value.push({ role:'assistant', agent:'TripPlannerAgent', content:item.itineraryResult, status:'done' });
+        if (item.budgetResult) messages.value.push({ role:'assistant', agent:'BudgetAgent', content:item.budgetResult, status:'done' });
+        completionInfo.value = item.executionTime ? { totalTime: item.executionTime } : null;
+        isProcessing.value = false;
+        resetAgents();
+        if (item.status === 'SUCCESS') agents.forEach(a => a.status = 'done');
+        scrollToBottom();
+        // Collapse sidebar on mobile
+        if (window.innerWidth < 768) sidebarOpen.value = false;
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/v1/history?page=0&size=20');
+        if (res.ok) {
+          const data = await res.json();
+          history.value = data.content || [];
+        }
+      } catch { /* ignore */ }
+    }
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/v1/stats');
+        if (res.ok) {
+          const data = await res.json();
+          Object.assign(stats, data);
+        }
+      } catch { /* ignore */ }
+    }
+
+    onMounted(() => {
+      loadHistory();
+      loadStats();
+      if (window.innerWidth < 768) sidebarOpen.value = false;
+      inputEl.value?.focus();
+    });
+
+    return {
+      sidebarOpen, isDark, inputText, messages, history, stats, agents, quickPrompts,
+      isProcessing, currentPlanId, completionInfo, errorInfo,
+      messagesContainer, scrollAnchor, inputEl,
+      statusColor, agentAvatarClass, agentAvatar, agentLabelClass, agentDisplayName,
+      renderMarkdown, formatTime, autoResize, toggleTheme,
+      sendMessage, newChat, loadHistory, retryLastPrompt
+    };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

@@ -2,8 +2,6 @@ package routeMakingAgent;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-import routeMakingAgent.agents.RouteMakingAgent;
-import routeMakingAgent.mcp.BaiduMapMCP;
 
 /**
  * author: Imooc
@@ -11,7 +9,11 @@ import routeMakingAgent.mcp.BaiduMapMCP;
  * date: 2026
  */
 
-@SpringBootApplication
+@SpringBootApplication(scanBasePackages = {
+        "routeMakingAgent",
+        "utils",
+        "config"
+})
 public class RouteMakingAgentApplication {
     public static void main(String[] args) {
 

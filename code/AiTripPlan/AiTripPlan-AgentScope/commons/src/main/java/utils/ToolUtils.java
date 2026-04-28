@@ -2,6 +2,7 @@ package utils;
 
 import io.agentscope.core.tool.Toolkit;
 import io.agentscope.core.tool.mcp.McpClientWrapper;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * author: Imooc
@@ -9,6 +10,7 @@ import io.agentscope.core.tool.mcp.McpClientWrapper;
  * date: 2026
  */
 
+@Slf4j
 public class ToolUtils {
 
     private final Toolkit toolkit ;
@@ -40,8 +42,17 @@ public class ToolUtils {
      */
     public Toolkit getToolkit(McpClientWrapper mcp) {
 
-        //把MCP服务端的所有工具添加到工具包
-        toolkit.registerMcpClient(mcp).block();
+        if (mcp == null) {
+            log.warn("MCP客户端为空，跳过MCP工具注册");
+            return toolkit;
+        }
+
+        try {
+            //把MCP服务端的所有工具添加到工具包
+            toolkit.registerMcpClient(mcp).block();
+        } catch (Exception e) {
+            log.warn("MCP工具注册失败，继续以无MCP工具模式启动: {}", e.getMessage());
+        }
 
         return toolkit;
     }

@@ -19,7 +19,7 @@ public class TripPlan {
     public PlanNotebook getPlan() {
         return PlanNotebook.builder()
                 //计划步骤是否需要用户确认
-                .needUserConfirm(true)
+                .needUserConfirm(false)
                 //分解出来的子任务数量限制
                 .maxSubtasks(5)
                 .build();

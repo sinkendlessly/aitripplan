@@ -1,10 +1,50 @@
 server:
   port: 8085
 
-# A2A协议服务端
+spring:
+  application:
+    name: trip-planner-agent
+
+# Agent配置
+agent:
+  # DashScope API Key - 请通过环境变量 DASHSCOPE_API_KEY 设置
+  api-key: ${DASHSCOPE_API_KEY:your-api-key-here}
+
+  # 模型配置
+  model-name: ${AGENT_MODEL_NAME:qwen3-max}
+  stream: true
+
+  # 超时配置（秒）
+  timeout-seconds: ${AGENT_TIMEOUT:60}
+
+  # Skills配置
+  skills:
+    dir: ${AGENT_SKILLS_DIR:./skills}
+
+# AgentScope A2A 配置
 agentscope:
   a2a:
-    server:
-      enabled: true
     nacos:
-      server-addr: localhost:8848
+      server-addr: ${NACOS_SERVER_ADDR:127.0.0.1:8848}
+      username: ${NACOS_USERNAME:nacos}
+      password: ${NACOS_PASSWORD:nacos}
+    agent:
+      card:
+        name: TripPlannerAgent
+        description: "行程规划Agent，擅长处理景点行程规划"
+        version: "1.0.0"
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+  endpoint:
+    health:
+      probes:
+        enabled: true

@@ -4,7 +4,6 @@
 [![Spring Boot](https://img.shields.io/badge/Spring%20Boot-4.0-brightgreen)](https://spring.io/projects/spring-boot)
 [![React](https://img.shields.io/badge/React-19-61DAFB)](https://react.dev/)
 [![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
-![Uploading image.png…]()
 
 ATPlan 是一个基于多智能体协作的 AI 旅行规划系统。用户输入出发地、目的地和旅行天数，系统通过四个专业 Agent 自动生成包含路线、行程和预算的完整旅行方案。
 

@@ -2,55 +2,57 @@ package utils;
 
 import lombok.extern.slf4j.Slf4j;
 
-import java.util.regex.Pattern;
-
 /**
- * 用户输入安全过滤工具
- * 在用户输入到达 LLM 前进行清洗和分隔，降低 prompt injection 风险
+ * author: Sinkendlessly
+ * description: Prompt注入防护工具
+ *      过滤用户输入中的越狱指令，防止注入到System Message
+ * date: 2026
  */
 @Slf4j
 public class PromptSanitizer {
 
-    private static final int MAX_PROMPT_LENGTH = 4000;
+    /** 拦截后替换为无害文本 */
+    private static final String REDACTED = "[内容已过滤]";
 
-    // 常见注入关键词检测
-    private static final Pattern[] INJECTION_PATTERNS = {
-            Pattern.compile("ignore\\s+(all\\s+)?(previous|above|below)\\s+instructions", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("forget\\s+(all\\s+)?(previous|above)", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("system\\s+prompt", Pattern.CASE_INSENSITIVE),
-            Pattern.compile("你.+忽略.+指令", Pattern.UNICODE_CASE),
-            Pattern.compile("你.+扮演", Pattern.UNICODE_CASE),
+    /** 需要拦截的注入模式（不区分大小写） */
+    private static final String[] BLOCKED_PATTERNS = {
+            "忽略之前的所有指令",
+            "忽略以上所有",
+            "忽略所有指令",
+            "忽略之前的指令",
+            "ignore all previous",
+            "ignore all instructions",
+            "ignore the above",
+            "ignore previous instructions",
+            "forget everything",
+            "你是一个",
+            "你现在是",
+            "system message:",
+            "system prompt:",
     };
 
     /**
-     * 对用户输入进行安全处理
-     * 1. 截断超长输入
-     * 2. 用分隔标记包裹，明确区分系统指令和用户输入
+     * 对用户输入进行清洗，替换掉越狱指令
      */
-    public static String sanitize(String rawInput) {
-        if (rawInput == null || rawInput.isBlank()) {
-            return "";
+    public static String sanitize(String input) {
+        if (input == null || input.isBlank()) {
+            return input;
         }
 
-        // 截断超长输入
-        String trimmed = rawInput.length() > MAX_PROMPT_LENGTH
-                ? rawInput.substring(0, MAX_PROMPT_LENGTH)
-                : rawInput;
+        String result = input;
+        boolean matched = false;
 
-        // 将用户输入用明确的分隔标记包裹
-        return "【用户输入开始】\n" + trimmed + "\n【用户输入结束】";
-    }
-
-    /**
-     * 检测是否存在注入风险（仅日志告警，不阻断）
-     */
-    public static boolean hasSuspiciousContent(String input) {
-        for (Pattern pattern : INJECTION_PATTERNS) {
-            if (pattern.matcher(input).find()) {
-                log.warn("[安全告警] 用户输入包含可疑内容，匹配模式: {}", pattern);
-                return true;
+        for (String pattern : BLOCKED_PATTERNS) {
+            if (result.toLowerCase().contains(pattern.toLowerCase())) {
+                log.warn("[PromptSanitizer] 检测到注入模式: {}", pattern);
+                result = result.replaceAll("(?i)" + java.util.regex.Pattern.quote(pattern), REDACTED);
+                matched = true;
             }
         }
-        return false;
+
+        if (matched) {
+            log.warn("[PromptSanitizer] 输入已被清洗");
+        }
+        return result;
     }
 }

@@ -15,6 +15,12 @@ import utils.ToolUtils;
 
 import jakarta.annotation.PostConstruct;
 
+/**
+ * 主管Agent（v1 实验性路径）
+ * 使用 ReAct Agent + PlanNotebook + Tool Calling 驱动任务，LLM 自主决策调用子 Agent。
+ * 当前 REST API 走的是 TravelPlanService（v2 硬编码编排），
+ * 此路径保留作为 LLM 自主决策的实验性备选。
+ */
 @Slf4j
 @Component
 public class ManagerAgent {

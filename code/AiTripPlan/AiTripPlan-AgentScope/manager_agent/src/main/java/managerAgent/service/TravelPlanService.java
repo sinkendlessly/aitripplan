@@ -14,6 +14,8 @@ import managerAgent.dto.PlanResponse;
 import managerAgent.dto.StreamEvent;
 import model.AgentResult;
 import model.TravelPlanContext;
+import utils.JsonValidator;
+import utils.PromptSanitizer;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
@@ -28,11 +30,15 @@ import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
+import java.util.concurrent.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
+/**
+ * 旅行规划核心服务（当前主路径 - v2）
+ * v2: 代码硬编码编排三个 Agent（并行路线+行程 → 串行预算），可预测、可调试、可控超时
+ * v1（实验性备选）: ManagerAgent + ReAct + Tool Calling 驱动，见 ManagerAgent.java
+ */
 @Slf4j
 @Service
 public class TravelPlanService {
@@ -60,6 +66,13 @@ public class TravelPlanService {
         return t;
     });
 
+    /** 异步执行规划任务的线程池 */
+    private final ExecutorService planExecutor = Executors.newFixedThreadPool(4, r -> {
+        Thread t = new Thread(r, "atplan-executor");
+        t.setDaemon(true);
+        return t;
+    });
+
     private static final long PLAN_TTL_MINUTES = 30;
     private static final long SINK_CLEANUP_DELAY_SECONDS = 120;
 
@@ -73,6 +86,7 @@ public class TravelPlanService {
     @PreDestroy
     void shutdown() {
         cleanupScheduler.shutdownNow();
+        planExecutor.shutdownNow();
     }
 
     private void evictExpiredPlans() {
@@ -131,7 +145,7 @@ public class TravelPlanService {
 
     private void executePlanAsync(String planId, String sessionId,
                                   PlanRequest request, Sinks.Many<StreamEvent> sink) {
-        Mono.fromRunnable(() -> {
+        planExecutor.submit(() -> {
             long startTime = System.currentTimeMillis();
             try {
                 sink.tryEmitNext(StreamEvent.thinking("正在分析您的旅行需求..."));
@@ -147,9 +161,9 @@ public class TravelPlanService {
                 sink.tryEmitNext(StreamEvent.agentStart(itineraryAgent));
 
                 Mono<AgentResult> routeMono = callAgentWithStreaming(
-                        routeAgent, buildRoutePrompt(prompt), sink);
+                        routeAgent, buildRoutePrompt(prompt), sink, planId);
                 Mono<AgentResult> itineraryMono = callAgentWithStreaming(
-                        itineraryAgent, buildItineraryPrompt(prompt), sink);
+                        itineraryAgent, buildItineraryPrompt(prompt), sink, planId);
 
                 AgentResult[] parallelResults = Mono.zip(routeMono, itineraryMono,
                         (r1, r2) -> new AgentResult[]{r1, r2}).block();
@@ -157,11 +171,24 @@ public class TravelPlanService {
                 AgentResult routeResult = parallelResults[0];
                 AgentResult itineraryResult = parallelResults[1];
 
+                // 校验JSON格式：校验不通过只记日志不阻断，前端会展示原始文本兜底
+                if (routeResult.isSuccess() && !JsonValidator.isValidRoute(routeResult.getContent())) {
+                    log.warn("[{}] 路线JSON校验不通过，将使用原始文本展示", routeAgent);
+                }
+                if (itineraryResult.isSuccess() && !JsonValidator.isValidItinerary(itineraryResult.getContent())) {
+                    log.warn("[{}] 行程JSON校验不通过，将使用原始文本展示", itineraryAgent);
+                }
+
                 // Step 2: sequential call Budget
                 sink.tryEmitNext(StreamEvent.agentStart(budgetAgent));
                 String budgetPrompt = buildBudgetPrompt(prompt, routeResult, itineraryResult);
                 AgentResult budgetResult = callAgentWithStreaming(
-                        budgetAgent, budgetPrompt, sink).block();
+                        budgetAgent, budgetPrompt, sink, planId).block();
+
+                // 校验预算JSON格式
+                if (budgetResult.isSuccess() && !JsonValidator.isValidBudget(budgetResult.getContent())) {
+                    log.warn("[{}] 预算JSON校验不通过，将使用原始文本展示", budgetAgent);
+                }
 
                 long totalTime = System.currentTimeMillis() - startTime;
 
@@ -222,16 +249,16 @@ public class TravelPlanService {
                     log.debug("[清理] 已移除 planId={} 的 Sink", planId);
                 }, SINK_CLEANUP_DELAY_SECONDS, TimeUnit.SECONDS);
             }
-        }).subscribeOn(Schedulers.boundedElastic()).subscribe();
+        });
     }
 
     private Mono<AgentResult> callAgentWithStreaming(
-            String agentName, String prompt, Sinks.Many<StreamEvent> sink) {
+            String agentName, String prompt, Sinks.Many<StreamEvent> sink, String planId) {
 
         long startTime = System.currentTimeMillis();
 
         return Mono.fromCallable(() -> {
-            log.info("[{}] 开始调用", agentName);
+            log.info("[{}][planId={}] 开始调用", agentName, planId);
 
             A2aAgent agent = A2aAgent.builder()
                     .name(agentName)
@@ -259,20 +286,21 @@ public class TravelPlanService {
             long executionTime = System.currentTimeMillis() - startTime;
             String result = resultBuilder.toString();
 
-            log.info("[{}] 完成, 耗时{}ms, 结果长度{}", agentName, executionTime, result.length());
+            log.info("[{}][planId={}] 完成, 耗时{}ms, 结果长度{}", agentName, planId, executionTime, result.length());
             return AgentResult.success(agentName, result, executionTime);
 
         }).subscribeOn(Schedulers.boundedElastic())
                 .timeout(Duration.ofSeconds(60))
                 .onErrorResume(e -> {
                     long executionTime = System.currentTimeMillis() - startTime;
-                    log.error("[{}] 失败: {}", agentName, e.getMessage());
+                    log.error("[{}][planId={}] 失败: {}", agentName, planId, e.getMessage());
                     return Mono.just(AgentResult.failure(agentName, e.getMessage(), executionTime));
                 });
     }
 
     private String buildFullPrompt(PlanRequest request) {
-        StringBuilder sb = new StringBuilder(request.getPrompt());
+        String sanitized = PromptSanitizer.sanitize(request.getPrompt());
+        StringBuilder sb = new StringBuilder(sanitized);
         if (request.getOptions() != null) {
             PlanRequest.PlanOptions opts = request.getOptions();
             if (opts.getBudget() != null) {
@@ -298,18 +326,10 @@ public class TravelPlanService {
                 用户需求：
                 %s
 
-                请根据用户需求，规划最优的出行路线，包括：
-                1. 出发地到目的地的交通方式选择
-                2. 具体路线（高速/国道/省道等）
-                3. 预计行驶时间和距离
-                4. 途经的重要城市或休息点
-                5. 油费/过路费等交通成本估算
+                请规划最优出行路线，包括交通方式、路线分段、距离和时间。
 
-                请输出详细的路线规划方案。
-
-                【结构化输出要求】
-                在方案末尾，请用以下JSON格式输出关键数据：
-                ```json
+                【输出要求】
+                请严格按照以下JSON格式输出，不要输出任何其他文字和解释，不要使用```json代码块：
                 {
                   "origin": "出发地",
                   "destination": "目的地",
@@ -320,7 +340,6 @@ public class TravelPlanService {
                     { "from": "A", "to": "B", "roadName": "G25高速", "distanceKm": 80, "durationMin": 60 }
                   ]
                 }
-                ```
                 """, userRequest);
     }
 
@@ -331,18 +350,10 @@ public class TravelPlanService {
                 用户需求：
                 %s
 
-                请根据用户需求，安排详细的每日行程，包括：
-                1. 每天的景点安排（上午/下午/晚上）
-                2. 各景点的预计游览时间
-                3. 餐饮推荐和预计费用
-                4. 住宿建议（区域和价位）
-                5. 景点门票价格
+                请安排详细的每日行程，包括景点、餐饮和住宿建议。
 
-                请输出详细的行程规划方案。
-
-                【结构化输出要求】
-                在方案末尾，请用以下JSON格式输出关键数据：
-                ```json
+                【输出要求】
+                请严格按照以下JSON格式输出，不要输出任何其他文字和解释，不要使用```json代码块：
                 {
                   "totalDays": 3,
                   "days": [
@@ -355,7 +366,6 @@ public class TravelPlanService {
                     }
                   ]
                 }
-                ```
                 """, userRequest);
     }
 
@@ -380,17 +390,10 @@ public class TravelPlanService {
         }
 
         sb.append("""
-                请基于以上信息，进行全面的费用统计和分析：
-                1. 费用明细表（交通、住宿、餐饮、门票、其他）
-                2. 费用汇总（总预算、人均费用、日均花费）
-                3. 三档方案（经济/均衡/舒适）
-                4. 优化建议和风险提示
+                请基于以上信息，进行全面的费用统计和分析：费用明细、费用汇总、三档方案、优化建议。
 
-                请输出详细的费用分析报告。
-
-                【结构化输出要求】
-                在报告末尾，请用以下JSON格式输出关键数据：
-                ```json
+                【输出要求】
+                请严格按照以下JSON格式输出，不要输出任何其他文字和解释，不要使用```json代码块：
                 {
                   "total": { "totalBudget": 3000, "perPersonCost": 1500, "dailyAverage": 1000, "travelers": 2 },
                   "breakdown": { "transportation": 800, "accommodation": 1000, "dining": 600, "tickets": 400, "miscellaneous": 200 },
@@ -399,7 +402,6 @@ public class TravelPlanService {
                   ],
                   "optimizationTips": ["提前预订可节省住宿费"]
                 }
-                ```
                 """);
 
         return sb.toString();
@@ -420,12 +422,33 @@ public class TravelPlanService {
 
     private String[] parseOriginDestination(String request) {
         String[] result = new String[]{null, null};
-        java.util.regex.Matcher matcher =
-                java.util.regex.Pattern.compile("从(.+?)[到去](.+?)[的游玩]|(.+?)[到去](.+?)[日游]").matcher(request);
+
+        // 精确匹配：从A到B、A去B
+        Pattern precise = Pattern.compile("从(.+?)(?:到|去)(.+?)(?:[的游玩]|$)|([^到去]+?)(?:到|去)(.+?)(?:[的游玩]|$)");
+        Matcher matcher = precise.matcher(request);
         if (matcher.find()) {
             result[0] = matcher.group(1) != null ? matcher.group(1).trim() : matcher.group(3).trim();
             result[1] = matcher.group(2) != null ? matcher.group(2).trim() : matcher.group(4).trim();
+            // 去掉末尾的可能标点
+            if (result[0] != null) result[0] = result[0].replaceAll("[，,。.]", "");
+            if (result[1] != null) result[1] = result[1].replaceAll("[，,。.]", "");
         }
+
+        // Fallback: "我想去北京"、"计划去上海" 这种没有明确"从A到B"结构的
+        if (result[0] == null || result[1] == null) {
+            Pattern fallback = Pattern.compile("(?:去|到|在)(\\S{2,4}(?:市|区|县|镇))");
+            Matcher fm = fallback.matcher(request);
+            String first = fm.find() ? fm.group(1) : null;
+            String second = fm.find() ? fm.group(1) : null;
+            if (first != null && second != null) {
+                result[0] = first;
+                result[1] = second;
+            } else if (first != null) {
+                // 只有一个地点，认为是目的地
+                result[1] = first;
+            }
+        }
+
         return result;
     }
 }

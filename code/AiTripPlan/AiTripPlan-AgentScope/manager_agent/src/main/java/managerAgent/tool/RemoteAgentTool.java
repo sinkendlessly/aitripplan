@@ -8,8 +8,9 @@ import utils.ParallelAgentService;
 
 /**
  * author: Sinkendlessly
- * description: 远程Agent调用工具（重构版）
- *      支持并行调用、结果聚合、容错处理
+ * description: 远程Agent调用工具（v1 实验性路径组件）
+ *      通过 @Tool 注解将子 Agent 暴露为 ReAct Agent 可调用的工具。
+ *      当前 REST API 走 TravelPlanService（v2），此工具保留作为 ReAct 模式的调用组件。
  *      Agent 名称统一从 application.yml agent.names 读取
  * date: 2026
  */
@@ -132,18 +133,10 @@ public class RemoteAgentTool {
                 用户需求：
                 %s
 
-                请根据用户需求，规划最优的出行路线，包括：
-                1. 出发地到目的地的交通方式选择
-                2. 具体路线（高速/国道/省道等）
-                3. 预计行驶时间和距离
-                4. 途经的重要城市或休息点
-                5. 油费/过路费等交通成本估算
+                请规划最优出行路线，包括交通方式、路线分段、距离和时间。
 
-                请输出详细的路线规划方案。
-
-                【结构化输出要求】
-                在方案末尾，请用以下JSON格式输出关键数据：
-                ```json
+                【输出要求】
+                请严格按照以下JSON格式输出，不要输出任何其他文字和解释，不要使用```json代码块：
                 {
                   "origin": "出发地",
                   "destination": "目的地",
@@ -154,7 +147,6 @@ public class RemoteAgentTool {
                     { "from": "A", "to": "B", "roadName": "G25高速", "distanceKm": 80, "durationMin": 60 }
                   ]
                 }
-                ```
                 """, userRequest);
     }
 
@@ -168,18 +160,10 @@ public class RemoteAgentTool {
                 用户需求：
                 %s
 
-                请根据用户需求，安排详细的每日行程，包括：
-                1. 每天的景点安排（上午/下午/晚上）
-                2. 各景点的预计游览时间
-                3. 餐饮推荐和预计费用
-                4. 住宿建议（区域和价位）
-                5. 景点门票价格
+                请安排详细的每日行程，包括景点、餐饮和住宿建议。
 
-                请输出详细的行程规划方案。
-
-                【结构化输出要求】
-                在方案末尾，请用以下JSON格式输出关键数据：
-                ```json
+                【输出要求】
+                请严格按照以下JSON格式输出，不要输出任何其他文字和解释，不要使用```json代码块：
                 {
                   "totalDays": 3,
                   "days": [
@@ -192,7 +176,6 @@ public class RemoteAgentTool {
                     }
                   ]
                 }
-                ```
                 """, userRequest);
     }
 
@@ -227,34 +210,10 @@ public class RemoteAgentTool {
         }
 
         sb.append("""
-                请基于以上信息，进行全面的费用统计和分析：
+                请基于以上信息，进行全面的费用统计和分析：费用明细、费用汇总、三档方案、优化建议。
 
-                1. **费用明细表**
-                   - 交通费用（油费、过路费、停车费等）
-                   - 住宿费用（按每晚计算）
-                   - 餐饮费用（按每天计算）
-                   - 门票费用（各景点门票总和）
-                   - 其他费用（保险、应急等）
-
-                2. **费用汇总**
-                   - 总预算
-                   - 人均费用（假设2人出行）
-                   - 日均花费
-
-                3. **优化建议**
-                   - 哪些费用可以节省
-                   - 性价比最高的选择
-                   - 预算浮动区间
-
-                4. **风险提示**
-                   - 可能的额外支出
-                   - 淡旺季价格波动
-
-                请输出详细的费用分析报告。
-
-                【结构化输出要求】
-                在报告末尾，请用以下JSON格式输出关键数据：
-                ```json
+                【输出要求】
+                请严格按照以下JSON格式输出，不要输出任何其他文字和解释，不要使用```json代码块：
                 {
                   "total": { "totalBudget": 3000, "perPersonCost": 1500, "dailyAverage": 1000, "travelers": 2 },
                   "breakdown": { "transportation": 800, "accommodation": 1000, "dining": 600, "tickets": 400, "miscellaneous": 200 },
@@ -263,7 +222,6 @@ public class RemoteAgentTool {
                   ],
                   "optimizationTips": ["提前预订可节省住宿费"]
                 }
-                ```
                 """);
 
         return sb.toString();

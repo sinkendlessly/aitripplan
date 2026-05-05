@@ -2,29 +2,55 @@ import type { PlanRequest, PlanResponse, TravelPlanHistory, PageResponse, StatsD
 
 const BASE_URL = import.meta.env.VITE_API_BASE || '/api/v1'
 const REQUEST_TIMEOUT = 30_000
+const MAX_RETRIES = 2
 
 async function request<T>(url: string, options?: RequestInit): Promise<T> {
-  const controller = new AbortController()
-  const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
+  const isGet = !options?.method || options.method === 'GET'
 
-  const mergedSignal = options?.signal
-    ? combineSignals(options.signal, controller.signal)
-    : controller.signal
+  const doFetch = async (): Promise<T> => {
+    const controller = new AbortController()
+    const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT)
 
-  try {
-    const res = await fetch(`${BASE_URL}${url}`, {
-      headers: { 'Content-Type': 'application/json' },
-      ...options,
-      signal: mergedSignal,
-    })
-    if (!res.ok) {
-      const text = await res.text().catch(() => 'Unknown error')
-      throw new Error(`HTTP ${res.status}: ${text}`)
+    const signal = options?.signal
+      ? combineSignals(options.signal, controller.signal)
+      : controller.signal
+
+    try {
+      const res = await fetch(`${BASE_URL}${url}`, {
+        headers: { 'Content-Type': 'application/json' },
+        ...options,
+        signal,
+      })
+      if (!res.ok) {
+        const text = await res.text().catch(() => 'Unknown error')
+        throw new Error(`HTTP ${res.status}: ${text}`)
+      }
+      return res.json()
+    } finally {
+      clearTimeout(timeoutId)
     }
-    return res.json()
-  } finally {
-    clearTimeout(timeoutId)
   }
+
+  // 非 GET 请求不重试，直接发一次
+  if (!isGet) {
+    return doFetch()
+  }
+
+  // GET 请求：503 时自动重试最多 2 次
+  let lastErr: Error | null = null
+  for (let i = 0; i <= MAX_RETRIES; i++) {
+    try {
+      return await doFetch()
+    } catch (err) {
+      lastErr = err instanceof Error ? err : new Error(String(err))
+      if (!lastErr.message.includes('HTTP 503') || i === MAX_RETRIES) {
+        throw lastErr
+      }
+      console.warn(`[API] 请求失败 (${i + 1}/${MAX_RETRIES})，重试...`, url)
+      await new Promise(r => setTimeout(r, 1000 * (i + 1)))
+    }
+  }
+  throw lastErr!
 }
 
 /** Combine two AbortSignals into one */
